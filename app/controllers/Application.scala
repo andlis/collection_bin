@@ -16,14 +16,19 @@ object Application extends Controller {
 	"label" -> nonEmptyText
   )
 
+  val taskUpdateForm = Form(
+  	tuple("id" -> nonEmptyText,
+  	"label" -> nonEmptyText)
+  	)
+
   def tasks = Action {
-	Ok(views.html.index(Task.all(), taskForm))
+	Ok(views.html.index(Task.all(), taskForm, taskUpdateForm))
   }
 	
   def newTask = Action {
 	implicit request => 
 		taskForm.bindFromRequest.fold(
-			errors => BadRequest(views.html.index(Task.all(), errors)),
+			errors => BadRequest(views.html.index(Task.all(), errors, taskUpdateForm)),
 			label => {
 				Task.create(label)
 				Redirect(routes.Application.tasks)
@@ -32,9 +37,15 @@ object Application extends Controller {
 	}
 	
   def update(id: Long) = Action {
-	Task.update(id)
-	redirect(routes.Application.tasks)
-}
+  	implicit request =>
+  		taskUpdateForm.bindFromRequest.fold(
+  			errors => BadRequest(views.html.index(Task.all(), taskForm, errors)),
+  			value => {
+  				Task.update(value._1.toLong, value._2)
+  				Redirect(routes.Application.tasks)
+  			  }
+  		  )
+  }
 
 
   def deleteTask(id: Long) = Action {
